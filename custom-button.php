@@ -1,5 +1,12 @@
 <?php 
 
+//display after button add to cart
+add_action('woocommerce_after_add_to_cart_button','cmk_additional_button');
+function cmk_additional_button() {
+    echo '<button type="submit" class="button alt">Change me please</button>';
+}
+
+
 //If you want to display a custom button for a specific product category on product category archives pages below the description of this product category you will use:
 
 add_action( 'woocommerce_archive_description', 'extra_button_on_product_category_archives', 20 );
