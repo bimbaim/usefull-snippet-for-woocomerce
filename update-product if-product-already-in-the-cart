@@ -1,0 +1,35 @@
+<?php
+/*------------
+ * update product if product already in the cart
+ ------------*/
+add_action('woocommerce_add_to_cart_handler', 'update_product_in_cart', 11, 2);
+
+function update_product_in_cart($p, $q) {
+    global $woocommerce;
+    $cartItem = $woocommerce->cart->cart_contents;
+    $currentProductId = $q->id;
+    $wCart = $woocommerce->cart->get_cart();
+
+    // If cart already exists, and product exists, than remove product, and add the new product to it.
+    if ($wCart)
+    {
+        $cart_item_keys = array_keys($wCart);
+
+        foreach($cart_item_keys as $key)
+        {
+            foreach($cartItem as $item)
+            {
+                $productItemId = $item['product_id'];
+                if ($productItemId == $currentProductId)
+                {
+                    // If you want to empty the entire cart...
+                    // $woocommerce->cart->empty_cart();
+                    // If you want to remove just the product from the cart...
+                    $woocommerce->cart->set_quantity($key, 0);
+                }
+            }
+        }
+    }
+    // This adds the product to the cart...
+    return $q;
+}
