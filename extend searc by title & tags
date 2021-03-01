@@ -1,0 +1,41 @@
+<?php
+// Search titles and tags
+function and_extend_search( $search, &$wp_query ) {
+
+    global $wpdb;
+
+    if ( empty( $search ))
+        return $search;
+
+    $terms = $wp_query->query_vars[ 's' ];
+    $exploded = explode( ' ', $terms );
+    if( $exploded === FALSE || count( $exploded ) == 0 )
+        $exploded = array( 0 => $terms );
+
+    $search = '';
+
+    foreach( $exploded as $tag ) {
+        $search .= " AND (
+            ($wpdb->posts.post_title LIKE '%$tag%')
+
+            OR EXISTS
+            (
+                SELECT 
+                    *
+                FROM 
+                    $wpdb->term_relationships 
+                LEFT JOIN 
+                    $wpdb->terms 
+                ON 
+                    $wpdb->term_relationships.term_taxonomy_id = $wpdb->terms.term_id
+                WHERE
+                        $wpdb->terms.name LIKE '%$tag%'
+                    AND
+                        $wpdb->term_relationships.object_id = $wpdb->posts.ID
+            )
+        )";
+    }
+
+    return $search;
+}
+add_filter('posts_search', 'and_extend_search', 500, 2);
