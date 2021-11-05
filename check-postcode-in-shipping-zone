@@ -1,0 +1,166 @@
+<?php
+/**
+ * MY CLASS NAME
+ *
+ * @package MY PACKAGE
+ * @since 1.0.0
+ */
+
+
+if( ! class_exists( 'WhelloCheckPostcode' ) ) :
+
+	/**
+	 * WhelloCheckPostcode
+	 *
+	 * @since 1.0.0
+	 */
+	class WhelloCheckPostcode {
+
+		/**
+		 * Instance
+		 *
+		 * @access private
+		 * @since 1.0.0
+		 */
+		private static $instance;
+
+		/**
+		 * Initiator
+		 *
+		 * @since 1.0.0
+		 * @return object initialized object of class.
+		 */
+		public static function instance(){
+			if ( ! isset( self::$instance ) ) {
+				self::$instance = new self;
+			}
+			return self::$instance;
+		}
+
+		/**
+		 * Constructor
+		 *
+		 * @since 1.0.0
+		 */
+		public function __construct() {
+			
+			add_action('wp_footer', array($this, 'checkpostcode_scripts'));
+			add_shortcode('check-postcode', array($this, 'render'));
+			
+			add_action( 'wp_ajax_check-postcode', array( $this, 'checkpostcode_requested' ));
+			add_action( 'wp_ajax_nopriv_check-postcode', array( $this, 'checkpostcode_requested' ));
+			
+		}
+		
+		public function  checkpostcode_scripts(){
+				?>
+				<style>
+					input.swal2-input {
+						width: 480px;
+					}
+					button.swal2-confirm.swal2-styled {
+						background: #8AC640;
+					}
+					@media only screen and (max-width:481px) {
+					  		input.swal2-input {
+									width: 310px;
+							}
+					}
+				</style>
+				<script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+				
+				<?php
+			}
+			
+		
+		public function checkpostcode_requested(){
+			
+			global $wpdb;
+				$postcode_locations = $wpdb->get_results( "SELECT zone_id, location_code FROM {$wpdb->prefix}woocommerce_shipping_zone_locations WHERE location_type = 'postcode';" );
+				$country = 'NL';
+				$postcode =  $_POST['postcode'];
+				  if ( $postcode_locations ) {
+					$zone_ids_with_postcode_rules = array_map( 'absint', wp_list_pluck( $postcode_locations, 'zone_id' ) );
+					$matches                      		= wc_postcode_location_matcher( $postcode, $postcode_locations, 'zone_id', 'location_code', $country );
+					$do_not_match                 = array_unique( array_diff( $zone_ids_with_postcode_rules, array_keys( $matches ) ) );
+
+					if ( ! empty( $do_not_match ) ) {
+					  $criteria[] = 'AND zones.zone_id NOT IN (' . implode( ',', $do_not_match ) . ')';
+					}
+					
+					If($matches){
+						 echo 'Wij bezorgen in jouw postcode';
+						}else{
+							echo 'Helaas, wij bezorgen nog niet in je postcode. Schrijf je in op onze wachtlijst en wij houden je op de hoogte wanneer wij wel in jouw postcode gebied bezorgen';
+							}
+			
+			wp_die();
+			}
+		}
+			
+		public function render($atts){
+			ob_start();
+			
+			 extract( shortcode_atts( array(
+				'class' => '', 
+			), $atts));
+			
+			?>
+					<input type="button" style="background: #fd8300;" class="ct-button check-postcode" value="Check je postcode">
+					<script>
+						(function( $ ) {
+								var PostCodeAjaxUrl = '<?php echo admin_url("admin-ajax.php") ?>';
+								$('.check-postcode').click(function(e){
+									 e.preventDefault();
+										Swal.fire({
+											  title: 'Voer postcode in om beschikbaarheid te controleren',
+											  input: 'text',
+											  inputAttributes: {
+												autocapitalize: 'off'
+											  },
+											  showCancelButton: true,
+											  confirmButtonText: 'Look up',
+											  showLoaderOnConfirm: true,
+											  preConfirm: function() {
+													return new Promise(function(resolve) {
+														var postCode = $('.swal2-input').val(); 
+														$.ajax({
+															type: "POST",
+															url: PostCodeAjaxUrl,
+															data: { 'postcode': postCode, 'action': 'check-postcode'},
+															cache: false,
+															success: function(response) {
+																
+																  Swal.fire({ html: `${response}` })
+																
+															},
+															failure: function (response) {
+																swal(
+																"Internal Error",
+																"Oops, your note was not saved.", // had a missing comma
+																"error"
+																)
+															}
+														});
+													});
+												},allowOutsideClick: false
+											})
+										});
+						})(jQuery);
+					</script>
+			<?php
+			return  ob_get_clean();
+			}
+		
+		
+
+	}
+
+	/**
+	 * Kicking this off by calling 'instance()' method
+	 */
+	WhelloCheckPostcode::instance();
+	// OR
+	// $my_class_name = WhelloCheckPostcode::instance();
+
+endif;
