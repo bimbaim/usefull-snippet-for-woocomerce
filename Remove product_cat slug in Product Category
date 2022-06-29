@@ -1,0 +1,33 @@
+/*
+ * Rewrite Permalink
+ * Change Category Product Category Base in settings to .
+ */
+function youngtrader_rewrite_rules( $wp_rewrite ) {
+
+	global $wp_rewrite;
+
+	$rules = array();
+
+    //rewrite post type product
+    $tax = 'product_cat'; 
+	$terms = get_terms( array( 'taxonomy' => $tax, 'hide_empty' => false ));
+
+    foreach($terms as $term) {
+        $rules[$term->slug . '/page/(.+?)(?:/([0-9]+))?/?$'] = 'index.php?'.$tax.'=' . $term->slug. '&paged=$matches[1]'; 
+        $rules[$term->slug . '/(.+?)(?:/([0-9]+))?/?$'] = 'index.php?'.$tax.'=' . $term->slug.'&product=$matches[1]';
+        $rules[$term->slug . '/?$'] = 'index.php?'.$tax.'=' . $term->slug;
+
+    }
+
+
+	$wp_rewrite->rules = $rules + $wp_rewrite->rules;
+    return $wp_rewrite->rules;
+}
+ 
+add_action('generate_rewrite_rules', 'youngtrader_rewrite_rules', 99, 1);
+
+// remove_filter('template_redirect', 'redirect_canonical');  
+
+add_action('create_product_cat', function(){
+	flush_rewrite_rules();
+}, 10, 1);
